@@ -1,0 +1,79 @@
+# 10-postgres.yaml – PostgreSQL for ShopMesh on Kubernetes
+# Compose equivalent: the `postgres` service + pg_data volume + db/init bind mount
+---
+# Service: stable DNS name "postgres" so apps keep using postgres:5432 (same as Compose)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  clusterIP: None          # "headless": DNS returns the Pod IP directly (required by StatefulSet)
+  selector:
+    app: postgres          # send traffic to Pods carrying this label
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1        # StatefulSet lives in the "apps" API group
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres    # the headless Service above → Pod gets DNS postgres-0.postgres
+  replicas: 1              # one database instance (no replication in this project)
+  selector:
+    matchLabels:
+      app: postgres        # which Pods this StatefulSet owns
+  template:                # the Pod "blueprint" (like one Compose service)
+    metadata:
+      labels:
+        app: postgres      # must match selector above
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          envFrom:
+            - secretRef:
+                name: postgres-secret     # POSTGRES_USER / PASSWORD / DB become env vars
+          env:
+            - name: PGDATA                # keep data in a subfolder of the volume
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data                  # the PVC (from volumeClaimTemplates below)
+              mountPath: /var/lib/postgresql/data
+            - name: init                  # seed SQL from the ConfigMap
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+          readinessProbe:                 # = Compose healthcheck: ready for connections?
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            periodSeconds: 5
+          livenessProbe:                  # still alive? (restart the container if not)
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 30       # give the first start (initdb + seed) time
+            periodSeconds: 10
+          resources:                      # tell the scheduler what we need; cap memory
+            requests:
+              cpu: 100m                   # 0.1 CPU
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: init
+          configMap:
+            name: postgres-init           # 01-products.sql + 02-orders.sql
+  volumeClaimTemplates:                   # one PVC per Pod: data-postgres-0
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]    # mounted read-write by one node
+        resources:
+          requests:
+            storage: 1Gi                  # StorageClass "standard" (default) creates the PV
