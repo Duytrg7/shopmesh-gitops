@@ -1,0 +1,18 @@
+# Release "frontend" → Deployment/Service "frontend", ConfigMap "frontend-config"
+image:
+  repository: shopmesh/frontend
+  tag: "0.1.1"
+
+port: 8000                          # ① uvicorn --port 8000 (Dockerfile CMD)
+service:
+  port: 8000                        # ② Service frontend:8000 (users reach it via port-forward for now)
+
+config:                             # BFF: the browser only talks to frontend, frontend calls the APIs
+  PRODUCT_URL: http://product:8001  # ③ frontend → product
+  CART_URL: http://cart:8002        # ③ frontend → cart
+  ORDER_URL: http://order:8003      # ③ frontend → order
+
+probes:
+  readiness:
+    path: /health                   # only the frontend itself: a dead backend must not remove the whole UI
+                                    # (maps merge: periodSeconds/failureThreshold keep their defaults)

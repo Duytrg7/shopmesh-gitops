@@ -1,0 +1,68 @@
+# Redis for the cart service: StatefulSet (stable name + its own disk) + headless Service.
+# Compose equivalent:
+#   redis: image redis:7-alpine, command redis-server --appendonly yes, volumes redis_data:/data
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis                       # ③ cart connects with REDIS_URL=redis://redis:6379/0
+  labels:
+    app: redis
+spec:
+  clusterIP: None                   # headless: DNS "redis" returns the Pod IP directly (no virtual IP)
+  selector:
+    app: redis
+  ports:
+    - name: redis
+      port: 6379                    # ② headless → no forwarding; the client connects straight to ① 6379
+      targetPort: redis
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  serviceName: redis                # required headless Service → Pod DNS name redis-0.redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine     # public image → kubelet pulls it from Docker Hub
+          # Compose "command:" = Kubernetes "args:" (replaces the image CMD, keeps its ENTRYPOINT)
+          # Compose "entrypoint:" = Kubernetes "command:"
+          args: ["redis-server", "--appendonly", "yes"]   # AOF: log every write to disk
+          ports:
+            - name: redis
+              containerPort: 6379   # ① redis-server listens
+          volumeMounts:
+            - name: data
+              mountPath: /data      # where Redis writes its AOF files (Compose: redis_data:/data)
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]   # replies PONG when Redis accepts commands
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi         # above this the container is OOMKilled
+  volumeClaimTemplates:             # one PVC per Pod: data-redis-0
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 512Mi

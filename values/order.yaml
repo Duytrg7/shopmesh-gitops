@@ -1,0 +1,23 @@
+# Release "order" → Deployment/Service "order", ConfigMap "order-config"
+# Shares the Postgres database with product (trade-off noted in the report).
+image:
+  repository: shopmesh/order
+  tag: "0.1.1"
+
+port: 8003                          # ① uvicorn --port 8003 (Dockerfile CMD)
+service:
+  port: 8003                        # ② frontend calls http://order:8003
+
+config:
+  DB_HOST: postgres                 # ③ order → postgres:5432 (headless)
+  DB_PORT: "5432"
+  CART_URL: http://cart:8002        # ③ order → cart Service (read the cart, clear it after checkout)
+
+secretEnv:                          # same Secret as product, created by CLI (not in Git)
+  - { name: DB_USER,     secret: postgres-secret, key: POSTGRES_USER }
+  - { name: DB_PASSWORD, secret: postgres-secret, key: POSTGRES_PASSWORD }
+  - { name: DB_NAME,     secret: postgres-secret, key: POSTGRES_DB }
+
+env:
+  - name: DATABASE_URL              # composed by kubelet from the variables above
+    value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)"

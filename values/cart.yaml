@@ -1,0 +1,12 @@
+# Release "cart" → Deployment/Service "cart", ConfigMap "cart-config"
+image:
+  repository: shopmesh/cart
+  tag: "0.1.1"
+
+port: 8002                          # ① uvicorn --port 8002 (Dockerfile CMD)
+service:
+  port: 8002                        # ② callers use http://cart:8002 (same as Compose)
+
+config:                             # no secrets → everything in the ConfigMap
+  REDIS_URL: redis://redis:6379/0   # ③ cart → redis (headless: straight to redis-0 :6379), DB 0
+  PRODUCT_URL: http://product:8001  # ③ cart → product Service (checks the product exists)
