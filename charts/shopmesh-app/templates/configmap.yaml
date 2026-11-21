@@ -1,0 +1,13 @@
+{{- /* Only rendered when the service has non-secret config (frontend/cart may not). */}}
+{{- if .Values.config }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    {{- include "shopmesh-app.labels" . | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.config }}
+  {{ $key }}: {{ $value | quote }}   # ConfigMap values must be strings → quote ("5432", not 5432)
+  {{- end }}
+{{- end }}

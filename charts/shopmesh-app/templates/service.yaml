@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}             # ③ callers use this DNS name, e.g. http://product:8001
+  labels:
+    {{- include "shopmesh-app.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "shopmesh-app.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}  # ② the door callers knock on
+      targetPort: http                  # ② forwards to the Pod port named http (= ① containerPort)

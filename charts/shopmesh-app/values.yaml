@@ -1,0 +1,34 @@
+# Defaults shared by every service. Each file in values/ overrides only what differs.
+replicaCount: 2                 # stateless → 2 Pods for no downtime during rolling updates
+
+image:
+  repository: ""                # required, e.g. shopmesh/product
+  tag: ""                       # required, quoted in service files ("0.3.1")
+  pullPolicy: IfNotPresent      # use the copy already on the node (minikube image load)
+
+port: 8000                      # ① app listens: must equal --port in the Dockerfile CMD
+
+service:
+  type: ClusterIP               # ② virtual IP, reachable only inside the cluster
+  port: 8000                    # ② the door callers use: <release-name>:<service.port>
+
+config: {}                      # non-secret env → ConfigMap "<release>-config", loaded with envFrom
+secretEnv: []                   # env read from existing Secrets: [{name, secret, key}]
+env: []                         # extra env; may combine the ones above with $(VAR)
+
+probes:
+  liveness:                     # kubelet restarts the container if this fails
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:                    # failing → Pod removed from the Service (ready=false), no restart
+    path: /ready                # a service without /ready sets "readiness: null" in its file
+    periodSeconds: 5
+    failureThreshold: 2
+
+resources:
+  requests:                     # what the scheduler reserves on the node
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 256Mi               # above this the container is OOMKilled

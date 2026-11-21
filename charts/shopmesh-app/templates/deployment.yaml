@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "shopmesh-app.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "shopmesh-app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "shopmesh-app.labels" . | nindent 8 }}
+      annotations:
+        # Hash of the rendered ConfigMap. Editing a ConfigMap does NOT restart Pods by itself;
+        # a new hash changes the Pod template → Deployment does a rolling update.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      securityContext:
+        runAsNonRoot: true                  # image declares USER 10001 (numeric) → no runAsUser needed
+      containers:
+        - name: {{ .Release.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.port }}   # ① app listens (documentation + name for targetPort)
+          {{- if .Values.config }}
+          envFrom:
+            - configMapRef:                 # every key of the ConfigMap becomes an env var
+                name: {{ .Release.Name }}-config
+          {{- end }}
+          {{- if or .Values.secretEnv .Values.env }}
+          env:
+            {{- range .Values.secretEnv }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:               # one key of an existing Secret (never stored in Git)
+                  name: {{ .secret }}
+                  key: {{ .key }}
+            {{- end }}
+            {{- range .Values.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}   # $(VAR) here may use envFrom keys and the secrets above
+            {{- end }}
+          {{- end }}
+          {{- with .Values.probes.liveness }}
+          livenessProbe:
+            httpGet:
+              path: {{ .path }}
+              port: http                    # probe hits ① the app's own port, by name
+            initialDelaySeconds: {{ .initialDelaySeconds | default 0 }}
+            periodSeconds: {{ .periodSeconds | default 10 }}
+            failureThreshold: {{ .failureThreshold | default 3 }}
+          {{- end }}
+          {{- with .Values.probes.readiness }}
+          readinessProbe:
+            httpGet:
+              path: {{ .path }}
+              port: http
+            initialDelaySeconds: {{ .initialDelaySeconds | default 0 }}
+            periodSeconds: {{ .periodSeconds | default 10 }}
+            failureThreshold: {{ .failureThreshold | default 3 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

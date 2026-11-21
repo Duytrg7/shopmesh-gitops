@@ -1,0 +1,21 @@
+# Release "product" → Deployment/Service "product", ConfigMap "product-config"
+image:
+  repository: shopmesh/product
+  tag: "0.3.1"                  # quoted: unquoted 0.3.1 is fine, but "0.10" would become 0.1
+
+port: 8001                      # ① uvicorn --port 8001 (Dockerfile CMD)
+service:
+  port: 8001                    # ② same number as Compose → callers' URLs stay http://product:8001
+
+config:
+  DB_HOST: postgres             # ③ product calls postgres:5432 (headless Service)
+  DB_PORT: "5432"
+
+secretEnv:                      # from the Secret created by CLI on Day 8 (not in Git)
+  - { name: DB_USER,     secret: postgres-secret, key: POSTGRES_USER }
+  - { name: DB_PASSWORD, secret: postgres-secret, key: POSTGRES_PASSWORD }
+  - { name: DB_NAME,     secret: postgres-secret, key: POSTGRES_DB }
+
+env:
+  - name: DATABASE_URL          # same composition as Day 9, now built by the template
+    value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)"
