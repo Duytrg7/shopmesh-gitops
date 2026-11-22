@@ -1,7 +1,7 @@
 # Release "frontend" → Deployment/Service "frontend", ConfigMap "frontend-config"
 image:
-  repository: shopmesh/frontend
-  tag: "0.1.1"
+  repository: ghcr.io/duytrg7/shopmesh-frontend
+  tag: "011a331"
 
 port: 8000                          # ① uvicorn --port 8000 (Dockerfile CMD)
 service:

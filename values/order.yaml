@@ -1,8 +1,8 @@
 # Release "order" → Deployment/Service "order", ConfigMap "order-config"
 # Shares the Postgres database with product (trade-off noted in the report).
 image:
-  repository: shopmesh/order
-  tag: "0.1.1"
+  repository: ghcr.io/duytrg7/shopmesh-order
+  tag: "011a331"
 
 port: 8003                          # ① uvicorn --port 8003 (Dockerfile CMD)
 service:

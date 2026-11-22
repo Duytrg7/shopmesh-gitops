@@ -1,7 +1,7 @@
 # Release "cart" → Deployment/Service "cart", ConfigMap "cart-config"
 image:
-  repository: shopmesh/cart
-  tag: "0.1.1"
+  repository: ghcr.io/duytrg7/shopmesh-cart
+  tag: "011a331"
 
 port: 8002                          # ① uvicorn --port 8002 (Dockerfile CMD)
 service:

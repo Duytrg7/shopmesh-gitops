@@ -1,7 +1,7 @@
 # Release "product" → Deployment/Service "product", ConfigMap "product-config"
 image:
-  repository: shopmesh/product
-  tag: "0.3.1"                  # quoted: unquoted 0.3.1 is fine, but "0.10" would become 0.1
+  repository: ghcr.io/duytrg7/shopmesh-product
+  tag: "011a331"                  # quoted: unquoted 0.3.1 is fine, but "0.10" would become 0.1
 
 port: 8001                      # ① uvicorn --port 8001 (Dockerfile CMD)
 service:
