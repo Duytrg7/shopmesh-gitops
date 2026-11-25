@@ -10,3 +10,4 @@ service:
 config:                             # no secrets → everything in the ConfigMap
   REDIS_URL: redis://redis:6379/0   # ③ cart → redis (headless: straight to redis-0 :6379), DB 0
   PRODUCT_URL: http://product:8001  # ③ cart → product Service (checks the product exists)
+replicaCount: 3
