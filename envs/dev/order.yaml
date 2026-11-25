@@ -1,0 +1,2 @@
+# dev overrides for order (merged on top of values/order.yaml)
+replicaCount: 1

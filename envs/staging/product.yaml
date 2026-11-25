@@ -1,0 +1,2 @@
+# staging overrides for product (merged on top of values/product.yaml)
+replicaCount: 1

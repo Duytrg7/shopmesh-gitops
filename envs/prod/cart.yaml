@@ -1,0 +1,2 @@
+# prod overrides for cart (merged on top of values/cart.yaml)
+replicaCount: 2

@@ -1,0 +1,2 @@
+# dev overrides for frontend (merged on top of values/frontend.yaml)
+replicaCount: 1
