@@ -1,0 +1,33 @@
+# ApplicationSet: one "data" Application (postgres + redis from raw/) per environment.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: shopmesh-data
+  namespace: argocd
+spec:
+  goTemplate: true                       # {{.env}} below = ArgoCD's Go template, not Helm
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:                              # one generated Application per element
+        elements:
+          - env: dev
+          - env: staging
+          - env: prod
+  template:                              # an Application with blanks
+    metadata:
+      name: 'data-{{.env}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/Duytrg7/shopmesh-gitops.git
+        targetRevision: main
+        path: raw
+        directory:
+          include: '{10-postgres.yaml,30-redis.yaml}'   # skip 00-namespace.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'shopmesh-{{.env}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

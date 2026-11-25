@@ -1,0 +1,44 @@
+# ApplicationSet: every app in every environment = 4 x 3 = 12 Applications.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: shopmesh-apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:                            # every combination of the two lists below
+        generators:
+          - list:
+              elements:
+                - env: dev
+                - env: staging
+                - env: prod
+          - list:
+              elements:
+                - app: product
+                - app: cart
+                - app: order
+                - app: frontend
+  template:
+    metadata:
+      name: '{{.app}}-{{.env}}'          # e.g. cart-dev, cart-prod
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/Duytrg7/shopmesh-gitops.git
+        targetRevision: main
+        path: charts/shopmesh-app
+        helm:
+          releaseName: '{{.app}}'        # objects keep the names "cart", "order"… inside each namespace
+          valueFiles:                    # order matters: the LAST file wins
+            - '../../values/{{.app}}.yaml'
+            - '../../envs/{{.env}}/{{.app}}.yaml'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'shopmesh-{{.env}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
