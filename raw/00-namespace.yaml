@@ -1,6 +1,0 @@
-# 00-namespace.yaml – a separate "room" in the cluster for everything ShopMesh
-# (Compose equivalent: the project name → its own network shopmesh-app_default)
-apiVersion: v1          # core API group; Namespace is a basic object
-kind: Namespace
-metadata:
-  name: shopmesh
