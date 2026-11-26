@@ -1,0 +1,20 @@
+# Root Application (app-of-apps): ArgoCD reads argocd/apps/ from Git itself,
+# so the ApplicationSets are managed through Git too. This is the only manual apply.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Duytrg7/shopmesh-gitops.git
+    targetRevision: main
+    path: argocd/apps                 # the two ApplicationSet files
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd                 # ApplicationSets live in the argocd namespace
+  syncPolicy:
+    automated:
+      prune: false                    # safety: deleting a file here must not wipe a whole environment by accident
+      selfHeal: true
