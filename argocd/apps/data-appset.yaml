@@ -16,6 +16,10 @@ spec:
   template:                              # an Application with blanks
     metadata:
       name: 'data-{{.env}}'
+      labels:
+        env: '{{.env}}'
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io   # deleting the app also deletes its objects
     spec:
       project: default
       source:

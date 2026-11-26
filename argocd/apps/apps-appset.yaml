@@ -24,6 +24,10 @@ spec:
   template:
     metadata:
       name: '{{.app}}-{{.env}}'          # e.g. cart-dev, cart-prod
+      labels:
+        env: '{{.env}}'
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io   # deleting the app also deletes its objects
     spec:
       project: default
       source:
